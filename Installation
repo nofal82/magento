@@ -1,0 +1,202 @@
+# update
+sudo apt update
+# install Apache
+sudo apt install apache2
+sudo systemctl enable apache2.service
+ sudo a2enmod rewrite
+# install MariaDB and tools
+ apt-get install git curl software-properties-common
+ apt-key adv --recv-keys --keyserver hkp://keyserver.ubuntu.com:80 0xF1656F24C74CD1D8
+ add-apt-repository 'deb [arch=amd64,arm64,ppc64el] http://mirror.lstn.net/mariadb/repo/10.4/ubuntu bionic main'
+ apt update
+ apt install mariadb-server
+ apt install mariadb-client
+ # now we configure the DB and issue below command
+mysql_secure_installation
+(If you've just installed MariaDB, and haven't set the root password yet, you should just press enter here.
+
+Enter current password for root (enter for none): PRESS ENTER
+
+Switch to unix_socket authentication [Y/n] n
+
+Change the root password? [Y/n] n
+
+Remove anonymous users? [Y/n] y
+
+Disallow root login remotely? [Y/n] y
+
+Remove test database and access to it? [Y/n] y
+
+Reload privilege tables now? [Y/n] y
+
+All done!)
+#above is a wizard to create root passwd and to disallow root login
+#then we enter the DB by command below and  create magento user :
+
+
+mysql -uroot -p(password for root)
+mysql> CREATE USER 'magento'@'%' IDENTIFIED BY 'yourpasswd';
+mysql> GRANT ALL ON *.* TO 'magento'@'%';
+mysql>FLUSH PRIVILEGES;
+
+# install PHP7.4
+add-apt-repository ppa:ondrej/php
+apt-get update
+apt-get install php7.4
+
+
+# install php dependances
+apt install php7.4-fpm php7.4-common php7.4-mysql php7.4-gmp php7.4-curl php7.4-intl php7.4-mbstring php7.4-xmlrpc php7.4-gd php7.4-xml php7.4-cli php7.4-zip php7.4-bcmath php7.4-soap
+
+
+# below is configuration for php.ini file:
+# change below values on php.ini file
+vim /etc/php/7.4/fpm/php.ini  
+
+file_uploads = On
+allow_url_fopen = On
+short_open_tag = On
+memory_limit = 256M
+upload_max_filesize = 100M
+max_execution_time = 360
+date.timezone = America/Chicago
+
+# How to download Magento 2
+#We’re ready to download Magento and begin configuring it. First, run the commands below to download the latest version of Magento from its repository.
+
+#To get Magento latest release you may want to use GitHub repository. Install Composer, Curl and other dependencies to get started
+#issue below command to install composer first
+curl -sS https://getcomposer.org/installer | sudo php -- --install-dir=/usr/local/bin --filename=composer
+#After installing  Composer above, change into the Apache root directory (cd /var/www/) and download Magento 2 packages from GitHub.
+#now you need to go to https://account.magento.com/ and login into your account and (create a new access key and passwd, this will be used to get the project magento from adobe)
+# follow this link to create the public and private key (public key is user name and private key is the passwd)
+#check this link to create the username and passwd https://docs.magento.com/user-guide/v2.3/magento/magento-marketplace.html
+#Then run command below to allow www-data user to own the Magento directory.
+
+cd /var/www/
+sudo composer create-project --repository=https://repo.magento.com/ magento/project-community-edition magento
+# Copy and paste the authentication key. (Your public key is your username; your private key is your password)
+#After downloading Magento packages, run the commands below to install Magento with the following options: you need to change the passwd and user and firstname and lastname and email address and server IP, 
+#so first check the command carefully below! as below is only example but it works
+cd /var/www/magento
+php bin/magento setup:install --base-url=http://"serverIP"/ --db-host=localhost --db-name=magentodb --db-user=magentouser --db-password=passwd --admin-firstname=firstname --admin-lastname=lastname --admin-email='youremail' --admin-user=admin --admin-password=admin123 --backend-frontname=admin_magento --language=en_US --currency=USD --timezone=Asia/Tbilisi --use-rewrites=1
+#below also is a description foor above command
+
+#The Magento software is installed in the root directory on localhost. Admin is admin;  therefore: Your storefront URL is https://exmaple.com
+#The database server is on the same localhost as the webserver….
+#The database name is magento, and the magentouser and password is db_user_password_here
+#Uses server rewrites
+#The Magento administrator has the following properties:
+#First and last name are: Admin User
+#Username is: admin
+ #and the password is admin123
+#E-mail address is: admin@example.com
+#Default language is: (U.S. English)
+#Default currency is: U.S. dollars
+#Default time zone is: U.S. Central (America/Chicago)
+
+#After that, run the commands below to set the correct permissions for Magento 2 to function.
+sudo chown -R www-data:www-data /var/www/magento/
+sudo chmod -R 755 /var/www/magento/
+#How to configure Apache for Magento (2 files)
+# first file 
+
+less /etc/apache2/sites-available/000-default.conf 
+<VirtualHost *:80>
+        # The ServerName directive sets the request scheme, hostname and port that
+        # the server uses to identify itself. This is used when creating
+        # redirection URLs. In the context of virtual hosts, the ServerName
+        # specifies what hostname must appear in the request's Host: header to
+        # match this virtual host. For the default virtual host (this file) this
+        # value is not decisive as it is used as a last resort host regardless.
+        # However, you must set it for any further virtual host explicitly.
+        #ServerName www.example.com
+
+        ServerAdmin webmaster@localhost
+        DocumentRoot /var/www/
+
+        # Available loglevels: trace8, ..., trace1, debug, info, notice, warn,
+        # error, crit, alert, emerg.
+        # It is also possible to configure the loglevel for particular
+        # modules, e.g.
+        #LogLevel info ssl:warn
+        
+        ErrorLog ${APACHE_LOG_DIR}/error.log
+        CustomLog ${APACHE_LOG_DIR}/access.log combined
+
+        # For most configuration files from conf-available/, which are
+        # enabled or disabled at a global level, it is possible to
+        # include a line for only one particular virtual host. For example the
+        # following line enables the CGI configuration for this host only
+        # after it has been globally disabled with "a2disconf".
+        #Include conf-available/serve-cgi-bin.conf
+</VirtualHost>
+
+# second file 
+ess /etc/apache2/sites-available/magento2.conf 
+<VirtualHost *:80>
+     ServerAdmin admin@yourdomain
+     DocumentRoot /var/www/magento/
+     ServerName yourdomain
+     ServerAlias www.yourdomain
+
+     <Directory /var/www/magento/>
+        AllowOverride All
+     </Directory>
+
+     ErrorLog ${APACHE_LOG_DIR}/error.log
+     CustomLog ${APACHE_LOG_DIR}/access.log combined
+</VirtualHost>
+
+#After saving the file above, run the commands below to enable the new file that contains our Magento server block. Restart Apache after that.
+sudo a2ensite magento.conf
+sudo systemctl restart apache2
+# now the we configure the PHP and apache and we got the magento project , right ? now we begin the installation by following below steps :)
+# first we need to enable the logging to see the errors when trying to access the server from web via its IP
+cd /var/www/magento/pub/errors/
+mv local.xml.sample local.xml
+#now we issue below commands to clean the cache
+php bin/magento cache:clean
+cd /var/www/magento/
+rm -rf var/cache/*
+# now we deploy static
+cd /var/www/magento/
+php bin/magento setup:static-content:deploy
+php bin/magento deploy:mode:set developer
+# if you got DB exception then check the conf file below 
+less /var/www/magento/app/etc/env.php 
+#issue below command for flush
+php bin/magento cache:flush
+# allow remote access for user magento DB by enter following command
+sudo ufw allow from --your-ip-- to any port 3306
+#below command to transfer fro developer mode to production mode'
+php bin/magento deploy:mode:set production
+# below command to show which mode you are in
+php bin/magento deploy:mode:show
+#now we issue combile command
+cd /var/www/magento/
+php bin/magento setup:di:compile
+php bin/magento cache:clean 
+# disable two factorAuth
+bin/magento module:disable Magento_TwoFactorAuth
+# resize image
+php bin/magento catalog:images:resize
+php bin/magento cache:clean 
+php bin/magento cache:flush
+# now issue below commands to upgrade everything
+php bin/magento deploy:mode:set developer
+php bin/magento setup:upgrade
+php bin/magento setup:static-content:deploy -f
+php bin/magento cache:flush
+php bin/magento deploy:mode:set production
+# then we copy the static folder again to root folder, just follow below steps
+cd /var/www/magento/pub
+cp -r static ../
+# install cron
+cd /var/www/magento/pub
+bin/magento cron:install
+##now all is good#### give me your thought, thank you!
+
+
+
+
