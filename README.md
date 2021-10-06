@@ -5,4 +5,4 @@ after you follow the steps described, you can show the admin url by issue
 cd /var/www/magento
 php bin/magento info:adminuri
 
-you will the admin url there
+you will see the admin url 
