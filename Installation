@@ -196,6 +196,10 @@ cp -r static ../
 cd /var/www/magento/pub
 bin/magento cron:install
 ##now all is good#### give me your thought, thank you!
+## to show the admin url just issue below command
+cd /var/www/magento
+php bin/magento info:adminuri
+
 
 
 
